@@ -76,6 +76,10 @@ describe("main", () => {
     expect(result.stdout).toContain("CLAUDE_CONFIG_DIR");
   });
 
+  it("tells someone who only uses another tool that its logs are not read", () => {
+    expect(run([]).stdout).toMatch(/does not read logs\s+from Cursor, Codex or other tools/);
+  });
+
   it("says so when log files exist but hold no finished turn", () => {
     const dir = join(home, ".claude", "projects", "p");
     mkdirSync(dir, { recursive: true });
@@ -117,5 +121,22 @@ describe("main", () => {
 
     expect(JSON.parse(run(["--json", "--by-model"]).stdout).rows[0].key).toBe("claude-opus-5-5");
     expect(JSON.parse(run(["--json", "-e"]).stdout).groupBy).toBe("effort");
+  });
+
+  it("says how many logs it is about to read, before reading them", () => {
+    writeSession(join(home, ".claude"), 3);
+    const messages: string[] = [];
+
+    main([], {}, home, false, (message) => messages.push(message));
+
+    expect(messages).toEqual(["Reading 1 session log…"]);
+  });
+
+  it("reports no progress when there is nothing to read", () => {
+    const messages: string[] = [];
+
+    main([], {}, home, false, (message) => messages.push(message));
+
+    expect(messages).toEqual([]);
   });
 });

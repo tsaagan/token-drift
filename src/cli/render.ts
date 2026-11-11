@@ -92,6 +92,9 @@ export function renderSummary(report: Report, p: Palette): string {
         : `${NOT_RECORDED} = turns whose log lines carry no ${GROUP_LABEL[report.groupBy].toLowerCase()}.`
     );
   }
+  if (rows.some((row) => row.medianThinkingTokens === null)) {
+    notes.push("— under Think = the logs for that row carry no thinking-token counts.");
+  }
   if (totals.unpricedTurns > 0 && hasPricedTurns(report)) {
     notes.push(
       `${plural(totals.unpricedTurns, "turn")} ran on a model with no known price and ` +
@@ -108,6 +111,7 @@ export function renderSummary(report: Report, p: Palette): string {
     ...notes.map((note) => p.dim(`  ${note}`)),
     "",
     p.dim("  Run again after your next Claude Code update to see what it changed."),
+    p.dim("  Share it: npx token-drift --compact"),
     p.dim("  ★ github.com/tsaagan/token-drift"),
     "",
   ].join("\n");
@@ -147,24 +151,54 @@ export function renderCompact(report: Report, p: Palette): string {
       `+ ${significant.length - 1} earlier changes`,
     ].join("\n");
   }
-  return [head, ...verdictLines(report, p, significant)].join("\n");
+  return [head, ...verdictLines(report, p, significant, false)].join("\n");
 }
 
 function verdictLines(
   report: Report,
   p: Palette,
-  significant = report.changes.filter((c) => c.significant)
+  significant = report.changes.filter((c) => c.significant),
+  withLatest = true
 ): string[] {
   if (report.groupBy !== "harnessVersion") return [];
-  if (significant.length > 0) return significant.map((c) => fmtChange(c, p));
-  if (report.changes.length > 0) {
-    return [
-      `${p.green("✓")} No significant change in output tokens across ${report.changes.length + 1} versions`,
-    ];
+
+  const latest = withLatest ? latestLine(report, p) : null;
+  const lines =
+    significant.length > 0
+      ? significant.map((c) => fmtChange(c, p))
+      : report.changes.length > 0
+        ? [`${p.green("✓")} No significant change in output tokens across ${report.changes.length + 1} versions`]
+        : latest
+          ? []
+          : [p.dim(`· Nothing to compare yet: that takes two versions with at least ${MIN_TURNS} turns each.`)];
+
+  return latest ? [...lines, latest] : lines;
+}
+
+/**
+ * What the newest version looks like so far, when no other line already says:
+ * how close it is to being comparable, or that it has not moved while older
+ * versions did.
+ */
+function latestLine(report: Report, p: Palette): string | null {
+  const versions = report.rows.filter((row) => row.key !== NOT_RECORDED);
+  const newest = versions.at(-1);
+  if (!newest) return null;
+
+  if (newest.lowSample) {
+    const baseline = versions.filter((row) => !row.lowSample).at(-1);
+    if (!baseline) return null;
+    return p.dim(
+      `· Latest, ${newest.key}: ${plural(newest.turns, "turn")} so far, ` +
+        `${MIN_TURNS - newest.turns} more to compare it with ${baseline.key}`
+    );
   }
-  return [
-    p.dim(`· Nothing to compare yet: that takes two versions with at least ${MIN_TURNS} turns each.`),
-  ];
+
+  const change = report.changes.find((c) => c.to === newest.key);
+  if (change && !change.significant && report.changes.some((c) => c.significant)) {
+    return `${p.green("✓")} Latest, ${p.bold(newest.key)}: no significant change from ${change.from}`;
+  }
+  return null;
 }
 
 function fmtChange(c: ReportChange, p: Palette): string {

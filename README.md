@@ -1,43 +1,26 @@
 # token-drift
 
-Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. token-drift reads the session logs Claude Code already keeps on your machine and lines the numbers up by version, so you can see when something moved and what most likely moved it.
+See what each Claude Code update costs you, from the logs already on your machine.
 
 ```
 npx token-drift
 ```
 
-There is nothing to configure. It reads local files only and makes no network requests.
+![token-drift output: an estimated cost, the changes it found between Claude Code versions with a cause for each, and a table with one row per version](docs/demo.svg)
+
+Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. token-drift reads the session logs Claude Code already keeps and lines the numbers up by version, so you can see when something moved and what most likely moved it. There is nothing to configure. It reads local files only and makes no network requests.
+
+The picture is a run on sample logs. In it, 2.1.314 started writing more than twice as much per turn, and the jump is still there when only turns on the same model and effort level are compared, so it is put down to the release. The drop at 2.1.319 lines up with a switch from Opus 5.5 to Fable 5.2, so the model is named instead.
+
+## After an update
+
+Run it again once you have used a new Claude Code version for a while. Until that version has 20 turns the output says how far along it is:
 
 ```
-  token-drift · see what each Claude Code update costs you
-  ───────────────────────────────────────────────────────
-
-  $230.45 estimated at API list prices
-  993 turns · 20 sessions · Oct 6 – Nov 5, 2026
-
-  ▲ 2.1.311 → 2.1.314: 120% more output tokens (release: same model and effort)
-  ▼ 2.1.314 → 2.1.319: 45% fewer output tokens (model: opus-5-5 → fable-5-2)
-
-  Version          │ Turns │  Output │       Δ │  $/turn │  Think │  Cache
-  ─────────────────┼───────┼─────────┼─────────┼─────────┼────────┼───────
-  2.1.306          │   110 │    1.2K │         │   $0.22 │    308 │  95.6%
-  2.1.310          │   300 │    1.2K │         │   $0.20 │    278 │  95.6%
-  2.1.311          │   276 │    1.1K │         │   $0.21 │    278 │  95.8%
-  2.1.312          │    14 │    1.1K │   low n │   $0.14 │    259 │  95.4%
-  2.1.314          │   116 │    2.5K │   ↑120% │   $0.23 │    586 │  95.7%
-  2.1.319          │   177 │    1.4K │    ↓45% │   $0.34 │    405 │  95.7%
-  ─────────────────┴───────┴─────────┴─────────┴─────────┴────────┴───────
-
-  Output, $/turn and Think are per-turn medians; Δ marks a significant change.
-  low n = fewer than 20 turns, too few to compare.
-  Cost is an estimate (tokens × Anthropic API list prices), not a bill.
-  On a subscription, it is what the same usage would cost through the API.
-
-  Run again after your next Claude Code update to see what it changed.
-  ★ github.com/tsaagan/token-drift
+  · Latest, 2.1.320: 5 turns so far, 15 more to compare it with 2.1.319
 ```
 
-That run is from sample logs. In it, 2.1.314 started writing more than twice as much per turn, and the jump is still there when only turns on the same model and effort level are compared, so it is put down to the release. The drop at 2.1.319 lines up with a switch from Opus 5.5 to Fable 5.2, so the model is named instead.
+After that it either gets a line of its own saying what changed and why, or one saying it hasn't moved.
 
 ## Options
 

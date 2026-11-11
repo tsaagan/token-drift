@@ -217,6 +217,71 @@ describe("renderDiagnosis for a first-time reader", () => {
   });
 });
 
+describe("renderDiagnosis on the newest version", () => {
+  const diagnosis = (report: Report): string => renderDiagnosis(report, p);
+
+  it("says how many more turns the newest version needs before it is compared", () => {
+    const out = diagnosis(
+      makeReport({ rows: [makeRow({ key: "2.1.310" }), makeRow({ key: "2.1.312", turns: 5, lowSample: true })] })
+    );
+
+    expect(out).toContain("· Latest, 2.1.312: 5 turns so far, 15 more to compare it with 2.1.310");
+    expect(out).not.toContain("Nothing to compare yet");
+  });
+
+  it("uses the singular for a single turn", () => {
+    const out = diagnosis(
+      makeReport({ rows: [makeRow({ key: "2.1.310" }), makeRow({ key: "2.1.312", turns: 1, lowSample: true })] })
+    );
+
+    expect(out).toContain("1 turn so far, 19 more");
+  });
+
+  it("says the newest version is unchanged when only older ones moved", () => {
+    const out = diagnosis(
+      makeReport({
+        rows: [makeRow({ key: "2.1.310" }), makeRow({ key: "2.1.312" }), makeRow({ key: "2.1.314" })],
+        changes: [
+          change({ from: "2.1.310", to: "2.1.312" }),
+          change({ from: "2.1.312", to: "2.1.314", significant: false, attribution: null }),
+        ],
+      })
+    );
+
+    expect(out).toContain("✓ Latest, 2.1.314: no significant change from 2.1.312");
+  });
+
+  it("adds nothing when the newest version already has a line of its own", () => {
+    const out = diagnosis(
+      makeReport({
+        rows: [makeRow({ key: "2.1.310" }), makeRow({ key: "2.1.312" })],
+        changes: [change({ from: "2.1.310", to: "2.1.312" })],
+      })
+    );
+
+    expect(out).not.toContain("Latest,");
+  });
+
+  it("falls back to the general note when no earlier version has enough turns", () => {
+    const out = diagnosis(
+      makeReport({
+        rows: [makeRow({ key: "2.1.310", turns: 4, lowSample: true }), makeRow({ key: "2.1.312", turns: 5, lowSample: true })],
+      })
+    );
+
+    expect(out).not.toContain("Latest,");
+    expect(out).toContain("Nothing to compare yet");
+  });
+
+  it("fits within 80 columns", () => {
+    const out = diagnosis(
+      makeReport({ rows: [makeRow({ key: "2.1.1310" }), makeRow({ key: "2.1.1312", turns: 19, lowSample: true })] })
+    );
+
+    for (const line of out.split("\n")) expect(line.length).toBeLessThanOrEqual(80);
+  });
+});
+
 describe("renderTable", () => {
   it("shows delta arrows for significant increases", () => {
     const report = makeReport({
@@ -384,6 +449,18 @@ describe("renderSummary", () => {
 
     expect(renderSummary(report, p)).toMatch(/\(not recorded\) = .*effort/);
     expect(renderSummary(makeReport(), p)).not.toContain("(not recorded)");
+  });
+
+  it("shows the command that prints a summary to paste elsewhere", () => {
+    expect(renderSummary(makeReport(), p)).toContain("Share it: npx token-drift --compact");
+  });
+
+  it("explains a dash under Think only when a row has one", () => {
+    const without = makeReport({ rows: [makeRow({ medianThinkingTokens: null })] });
+    const withThinking = makeReport({ rows: [makeRow({ medianThinkingTokens: 120 })] });
+
+    expect(renderSummary(without, p)).toContain("— under Think = the logs for that row carry no thinking-token counts.");
+    expect(renderSummary(withThinking, p)).not.toContain("under Think");
   });
 
   it("gives a reason to come back, and where the project lives", () => {

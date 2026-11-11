@@ -42,7 +42,8 @@ export function main(
   argv: string[],
   env: Record<string, string | undefined>,
   home: string,
-  isTTY: boolean | undefined
+  isTTY: boolean | undefined,
+  onProgress?: (message: string) => void
 ): CliResult {
   const parsed = parseArgs(argv);
   if (parsed === "help") return { stdout: USAGE, stderr: "", exitCode: 0 };
@@ -55,7 +56,10 @@ export function main(
   }
 
   const dirs = logDirs(env, home);
-  const { turns, fileCount } = loadAllTurns(dirs);
+  // Reading a large log directory takes seconds; say so before going quiet.
+  const { turns, fileCount } = loadAllTurns(dirs, (found) =>
+    onProgress?.(`Reading ${found} session ${found === 1 ? "log" : "logs"}…`)
+  );
   const report = buildReport(turns, parsed.groupBy);
 
   // A script piping --json into jq needs JSON even when there is nothing to report.
@@ -123,8 +127,9 @@ function renderNoLogs(dirs: string[], fileCount: number, home: string): string {
     ...shown.map((dir) => `    ${dir}`),
     "",
     "  token-drift reads the logs Claude Code writes as you use it, so there",
-    "  is nothing to show until you have run a session. If your logs are",
-    "  somewhere else, set CLAUDE_CONFIG_DIR to that folder.",
+    "  is nothing to show until you have run a session. It does not read logs",
+    "  from Cursor, Codex or other tools. If your Claude Code logs are somewhere",
+    "  else, set CLAUDE_CONFIG_DIR to that folder.",
     "",
   ].join("\n");
 }

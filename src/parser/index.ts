@@ -20,12 +20,17 @@ export function logDirs(
   ];
 }
 
-export function loadAllTurns(dirs: string[]): {
+/** `onFound` is called once, with the number of log files, before any is read. */
+export function loadAllTurns(
+  dirs: string[],
+  onFound?: (fileCount: number) => void
+): {
   turns: Turn[];
   fileCount: number;
 } {
   const sessionFiles = dirs.flatMap(discoverSessions);
   const turns: Turn[] = [];
+  if (sessionFiles.length > 0) onFound?.(sessionFiles.length);
 
   for (const sf of sessionFiles) {
     let raw: string;
