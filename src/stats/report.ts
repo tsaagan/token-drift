@@ -1,6 +1,7 @@
 import type { BoundaryKey, Turn } from "../types.js";
 import {
   MIN_TURNS,
+  NOT_RECORDED,
   compareSemver,
   computeDeltas,
   computeMetrics,
@@ -30,7 +31,8 @@ export interface ReportRow {
   /** null when the logs carry no thinking-token counts for this row. */
   medianThinkingTokens: number | null;
   medianToolCalls: number;
-  cacheHitRate: number;
+  /** Cache reads as a share of all cache tokens; null when the row used no cache. */
+  cacheHitRate: number | null;
   estimatedCostUsd: number;
   medianCostPerTurnUsd: number | null;
   unpricedTurns: number;
@@ -57,7 +59,7 @@ export interface Report {
   schemaVersion: 1;
   groupBy: BoundaryKey["field"];
   totals: ReportTotals;
-  /** Releases in version order; models and effort levels by cost, highest first. */
+  /** Releases in version order; models and effort levels by cost, highest first, "(not recorded)" last. */
   rows: ReportRow[];
   /** Oldest first. Empty unless grouped by release. */
   changes: ReportChange[];
@@ -72,7 +74,9 @@ export function buildReport(
   const keys = Object.keys(metrics).sort(
     groupBy === "harnessVersion"
       ? compareSemver
-      : (a, b) => metrics[b].totalCost - metrics[a].totalCost
+      : (a, b) =>
+          Number(a === NOT_RECORDED) - Number(b === NOT_RECORDED) ||
+          metrics[b].totalCost - metrics[a].totalCost
   );
   const dates = groups
     .flatMap((m) => [m.firstSeen, m.lastSeen])

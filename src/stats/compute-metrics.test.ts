@@ -75,13 +75,13 @@ describe("computeMetrics", () => {
     expect(metrics["2.1.310"].cacheHitRate).toBeCloseTo(0.875);
   });
 
-  it("handles zero cache tokens", () => {
+  it("has no cache hit rate, rather than 0%, when no cache tokens were used", () => {
     const turns: Turn[] = [
       makeTurn({ cacheCreationTokens: 0, cacheReadTokens: 0 }),
     ];
 
     const metrics = computeMetrics(turns, "harnessVersion");
-    expect(metrics["2.1.310"].cacheHitRate).toBe(0);
+    expect(metrics["2.1.310"].cacheHitRate).toBeNull();
   });
 
   it("counts unique sessions", () => {

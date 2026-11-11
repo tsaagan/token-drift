@@ -130,4 +130,17 @@ describe("buildReport", () => {
 
     expect(changes[0].costPerTurnChange).toBeNull();
   });
+
+  it("lists the (not recorded) effort row last, however much it cost", () => {
+    const { rows } = buildReport(
+      [
+        makeTurn({ effort: null, outputTokens: 900_000 }),
+        makeTurn({ effort: "high", outputTokens: 1000 }),
+        makeTurn({ effort: "medium", outputTokens: 2000 }),
+      ],
+      "effort"
+    );
+
+    expect(rows.map((r) => r.key)).toEqual(["medium", "high", "(not recorded)"]);
+  });
 });

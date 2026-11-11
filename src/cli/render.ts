@@ -1,227 +1,265 @@
 import type { Palette } from "./color.js";
 import type { Report, ReportChange } from "../stats/report.js";
+import { MIN_TURNS, NOT_RECORDED } from "../stats/compute-metrics.js";
 
-const COL = { key: 16, n: 5, out: 7, delta: 7, cost: 7, think: 6, cache: 6 };
-const GROUP_LABEL: Record<string, string> = {
+const COL = { key: 16, turns: 5, out: 7, delta: 7, cost: 7, think: 6, cache: 6 };
+const GROUP_LABEL: Record<Report["groupBy"], string> = {
   harnessVersion: "Version",
   model: "Model",
   effort: "Effort",
 };
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function renderDiagnosis(report: Report, p: Palette): string {
-  const { totals, changes } = report;
-  const lines: string[] = [""];
+  const { totals } = report;
+  const lines = [
+    "",
+    p.bold("  whodrifted") + p.dim(" · what changed in each Claude Code release"),
+    p.dim("  " + "─".repeat(55)),
+    "",
+    hasPricedTurns(report)
+      ? `  ${p.bold(fmtCost(totals.estimatedCostUsd))} estimated at API list prices`
+      : "  Cost not estimated: no known price for the models in these logs",
+    p.dim(`  ${[plural(totals.turns, "turn"), plural(totals.sessions, "session"), fmtDateRange(totals.firstSeen, totals.lastSeen)].filter(Boolean).join(" · ")}`),
+  ];
 
-  lines.push(
-    p.bold("  whodrifted") +
-      p.dim(" · what changed in each Claude Code release")
-  );
-  lines.push(p.dim("  " + "─".repeat(55)));
-
-  if (totals.estimatedCostUsd > 0) {
-    lines.push("");
-    lines.push(
-      `  ${p.bold(fmtCost(totals.estimatedCostUsd))} estimated at API list prices · ${totals.turns} turns · ${totals.sessions} sessions`
-    );
-  }
-
-  const significant = changes.filter((c) => c.significant);
-  if (significant.length > 0) {
-    lines.push("");
-    for (const c of significant) {
-      lines.push(fmtChange(c, p));
-    }
-  } else if (changes.length > 0) {
-    lines.push("");
-    lines.push(
-      `  ${p.green("✓")} No significant output changes between versions`
-    );
-  }
-
+  const verdict = verdictLines(report, p);
+  if (verdict.length > 0) lines.push("", ...verdict.map((line) => `  ${line}`));
   return lines.join("\n");
 }
 
 export function renderTable(report: Report, p: Palette): string {
-  const { rows, changes } = report;
-  const changeMap = new Map(changes.map((c) => [c.to, c]));
-  const lines: string[] = [""];
-  const label = GROUP_LABEL[report.groupBy] ?? "Key";
+  const changeTo = new Map(report.changes.map((c) => [c.to, c]));
+  const plain = (s: string): string => s;
 
-  const hdr =
-    `  ${p.dim(rpad(label, COL.key))} │ ` +
-    `${p.dim(lpad("n", COL.n))} │ ` +
-    `${p.dim(lpad("Output", COL.out))} │ ` +
-    `${p.dim(lpad("Δ", COL.delta))} │ ` +
-    `${p.dim(lpad("$/turn", COL.cost))} │ ` +
-    `${p.dim(lpad("Think", COL.think))} │ ` +
-    `${p.dim(lpad("Cache", COL.cache))}`;
-  lines.push(hdr);
-  lines.push(sep("┼", p));
+  const lines = [
+    "",
+    "  " +
+      [
+        rpad(GROUP_LABEL[report.groupBy], COL.key),
+        lpad("Turns", COL.turns),
+        lpad("Output", COL.out),
+        lpad("Δ", COL.delta),
+        lpad("$/turn", COL.cost),
+        lpad("Think", COL.think),
+        lpad("Cache", COL.cache),
+      ]
+        .map(p.dim)
+        .join(" │ "),
+    rule("┼", p),
+  ];
 
-  for (const row of rows) {
-    const change = changeMap.get(row.key);
-    const deltaStr = row.lowSample
-      ? p.dim("low n")
+  for (const row of report.rows) {
+    const change = changeTo.get(row.key);
+    const paint = row.lowSample ? p.dim : plain;
+    const key = report.groupBy === "model" ? shortModel(row.key) : row.key;
+    const delta = row.lowSample
+      ? p.dim(lpad("low n", COL.delta))
       : change?.significant
-        ? colorDelta(change.outputTokensChange, p)
-        : "";
-
-    const fmt = row.lowSample ? p.dim : (s: string) => s;
+        ? paintDelta(change.outputTokensChange, p)
+        : lpad("", COL.delta);
 
     lines.push(
-      `  ${fmt(rpad(truncate(row.key, COL.key), COL.key))} │ ` +
-        `${fmt(lpad(String(row.turns), COL.n))} │ ` +
-        `${fmt(lpad(fmtNum(row.medianOutputTokens), COL.out))} │ ` +
-        `${lpad(deltaStr, COL.delta)} │ ` +
-        `${fmt(lpad(fmtCostShort(row.medianCostPerTurnUsd), COL.cost))} │ ` +
-        `${fmt(lpad(row.medianThinkingTokens === null ? "—" : fmtNum(row.medianThinkingTokens), COL.think))} │ ` +
-        `${fmt(lpad((row.cacheHitRate * 100).toFixed(1) + "%", COL.cache))}`
+      "  " +
+        [
+          paint(rpad(truncate(key, COL.key), COL.key)),
+          paint(lpad(fmtInt(row.turns), COL.turns)),
+          paint(lpad(fmtTokens(row.medianOutputTokens), COL.out)),
+          delta,
+          paint(lpad(fmtCostPerTurn(row.medianCostPerTurnUsd), COL.cost)),
+          paint(lpad(row.medianThinkingTokens === null ? "—" : fmtTokens(row.medianThinkingTokens), COL.think)),
+          paint(lpad(row.cacheHitRate === null ? "—" : `${(row.cacheHitRate * 100).toFixed(1)}%`, COL.cache)),
+        ].join(" │ ")
     );
   }
 
-  lines.push(sep("┴", p));
+  lines.push(rule("┴", p));
   return lines.join("\n");
 }
 
+/** The notes under the table: what the columns mean and what the cost is. */
 export function renderSummary(report: Report, p: Palette): string {
   const { totals, rows } = report;
-  const lines: string[] = [""];
-  lines.push(
-    p.dim(
-      `  ${totals.turns} turns · ${totals.sessions} sessions · ${rows.length} ${GROUP_LABEL[report.groupBy]?.toLowerCase() ?? "group"}s`
-    )
-  );
-  lines.push(p.dim("  source: ~/.claude/projects/**/*.jsonl"));
-  lines.push(
-    p.dim(
-      `  generated: ${new Date().toISOString().slice(0, 16).replace("T", " ")}`
-    )
-  );
-  if (totals.unpricedTurns > 0) {
-    lines.push(
-      p.dim(
-        `  ${totals.unpricedTurns} turns could not be priced (unknown model)`
-      )
+  const notes = ["Output, $/turn and Think are per-turn medians; Δ marks a significant change."];
+
+  if (rows.some((row) => row.lowSample)) {
+    notes.push(`low n = fewer than ${MIN_TURNS} turns, too few to compare.`);
+  }
+  if (rows.some((row) => row.key === NOT_RECORDED)) {
+    notes.push(
+      report.groupBy === "effort"
+        ? `${NOT_RECORDED} = turns logged before Claude Code recorded the effort level.`
+        : `${NOT_RECORDED} = turns whose log lines carry no ${GROUP_LABEL[report.groupBy].toLowerCase()}.`
     );
   }
-  lines.push("");
-  lines.push(p.dim("  ★ github.com/tsaagan/whodrifted"));
-  lines.push("");
-  return lines.join("\n");
+  if (totals.unpricedTurns > 0 && hasPricedTurns(report)) {
+    notes.push(
+      `${plural(totals.unpricedTurns, "turn")} ran on a model with no known price and ` +
+        `${totals.unpricedTurns === 1 ? "is" : "are"} left out of the cost.`
+    );
+  }
+  notes.push(
+    "Cost is an estimate (tokens × Anthropic API list prices), not a bill.",
+    "On a subscription, it is what the same usage would cost through the API."
+  );
+
+  return [
+    "",
+    ...notes.map((note) => p.dim(`  ${note}`)),
+    "",
+    p.dim("  Run again after your next Claude Code update to see what it changed."),
+    p.dim("  ★ github.com/tsaagan/whodrifted"),
+    "",
+  ].join("\n");
 }
 
 export function renderJson(report: Report): string {
-  return JSON.stringify(report, null, 2);
-}
-
-export function renderCompact(report: Report, p: Palette): string {
-  const { totals, changes } = report;
-  const parts = [
-    `${p.bold("whodrifted")} · ${p.bold(fmtCost(totals.estimatedCostUsd))} estimated · ${totals.turns} turns`,
-  ];
-
-  const significant = changes.filter((c) => c.significant);
-  for (const c of significant) {
-    parts.push(fmtChange(c, p));
-  }
-  if (significant.length === 0 && changes.length > 0) {
-    parts.push(
-      `  ${p.green("✓")} No significant changes across ${changes.length + 1} versions`
-    );
-  }
-  return parts.join("\n");
-}
-
-function fmtChange(c: ReportChange, p: Palette): string {
-  const pct = c.outputTokensChange !== null
-    ? Math.abs(c.outputTokensChange * 100).toFixed(0)
-    : "?";
-  const dir =
-    c.outputTokensChange !== null && c.outputTokensChange > 0 ? "more" : "fewer";
-  const marker =
-    c.outputTokensChange !== null && c.outputTokensChange > 0
-      ? p.red("▲")
-      : p.green("▼");
-
-  let cause = "";
-  if (c.attribution) {
-    switch (c.attribution.cause) {
-      case "release":
-        cause = p.dim(` (release change, same model)`);
-        break;
-      case "model":
-        cause = p.dim(
-          ` (model: ${c.attribution.from} → ${c.attribution.to})`
-        );
-        break;
-      case "effort":
-        cause = p.dim(
-          ` (effort: ${c.attribution.from} → ${c.attribution.to})`
-        );
-        break;
-      case "unclear":
-        cause = p.dim(` (cause unclear)`);
-        break;
-    }
-  }
-
-  return `  ${marker} ${p.bold(c.from)} → ${p.bold(c.to)}: ${pct}% ${dir} output${cause}`;
-}
-
-function sep(joint: string, p: Palette): string {
-  return p.dim(
-    `  ${"─".repeat(COL.key)}─${joint}─` +
-      `${"─".repeat(COL.n)}─${joint}─` +
-      `${"─".repeat(COL.out)}─${joint}─` +
-      `${"─".repeat(COL.delta)}─${joint}─` +
-      `${"─".repeat(COL.cost)}─${joint}─` +
-      `${"─".repeat(COL.think)}─${joint}─` +
-      `${"─".repeat(COL.cache)}`
+  // Six decimals keeps every figure exact enough and drops float noise like 0.30000000000000004.
+  return JSON.stringify(
+    report,
+    (_key, value: unknown) =>
+      typeof value === "number" && !Number.isInteger(value)
+        ? Math.round(value * 1e6) / 1e6
+        : value,
+    2
   );
 }
 
-function colorDelta(d: number | null, p: Palette): string {
-  if (d === null) return p.yellow("new");
-  const pct = Math.abs(d * 100).toFixed(0);
-  return d > 0 ? p.red(`↑${pct}%`) : p.green(`↓${pct}%`);
+/** At most three unindented lines, each within 80 columns, for pasting elsewhere. */
+export function renderCompact(report: Report, p: Palette): string {
+  const { totals } = report;
+  const head = [
+    p.bold("whodrifted"),
+    hasPricedTurns(report)
+      ? `${p.bold(fmtCost(totals.estimatedCostUsd))} estimated`
+      : "cost not estimated",
+    plural(totals.turns, "turn"),
+    fmtDateRange(totals.firstSeen, totals.lastSeen),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const significant = report.changes.filter((c) => c.significant).reverse();
+  if (significant.length > 2) {
+    return [
+      head,
+      fmtChange(significant[0], p),
+      `+ ${significant.length - 1} earlier changes`,
+    ].join("\n");
+  }
+  return [head, ...verdictLines(report, p, significant)].join("\n");
 }
 
-// eslint-disable-next-line no-control-regex
-const ANSI_RE = /\x1b\[\d+m/g;
-
-function visibleLength(s: string): number {
-  return s.replace(ANSI_RE, "").length;
+function verdictLines(
+  report: Report,
+  p: Palette,
+  significant = report.changes.filter((c) => c.significant)
+): string[] {
+  if (report.groupBy !== "harnessVersion") return [];
+  if (significant.length > 0) return significant.map((c) => fmtChange(c, p));
+  if (report.changes.length > 0) {
+    return [
+      `${p.green("✓")} No significant change in output tokens across ${report.changes.length + 1} versions`,
+    ];
+  }
+  return [
+    p.dim(`· Nothing to compare yet: that takes two versions with at least ${MIN_TURNS} turns each.`),
+  ];
 }
 
-function lpad(s: string, w: number): string {
-  const gap = w - visibleLength(s);
-  return gap > 0 ? " ".repeat(gap) + s : s;
+function fmtChange(c: ReportChange, p: Palette): string {
+  const up = c.outputTokensChange !== null && c.outputTokensChange > 0;
+  const size =
+    c.outputTokensChange === null
+      ? "output tokens changed"
+      : `${Math.abs(c.outputTokensChange * 100).toFixed(0)}% ${up ? "more" : "fewer"} output tokens`;
+
+  return `${up ? p.red("▲") : p.green("▼")} ${p.bold(c.from)} → ${p.bold(c.to)}: ${size}${p.dim(` (${fmtCause(c)})`)}`;
 }
 
-function rpad(s: string, w: number): string {
-  const gap = w - visibleLength(s);
-  return gap > 0 ? s + " ".repeat(gap) : s;
+function fmtCause(c: ReportChange): string {
+  switch (c.attribution?.cause) {
+    case "release":
+      return "release: same model and effort";
+    case "model":
+      return `model: ${shortModel(c.attribution.from)} → ${shortModel(c.attribution.to)}`;
+    case "effort":
+      return `effort: ${c.attribution.from} → ${c.attribution.to}`;
+    default:
+      return "cause unclear";
+  }
+}
+
+function hasPricedTurns(report: Report): boolean {
+  return report.totals.turns > report.totals.unpricedTurns;
+}
+
+function rule(joint: string, p: Palette): string {
+  return p.dim(
+    "  " +
+      Object.values(COL)
+        .map((width) => "─".repeat(width))
+        .join(`─${joint}─`)
+  );
+}
+
+function paintDelta(change: number | null, p: Palette): string {
+  if (change === null) return lpad("", COL.delta);
+  const text = lpad(`${change > 0 ? "↑" : "↓"}${Math.abs(change * 100).toFixed(0)}%`, COL.delta);
+  return change > 0 ? p.red(text) : p.green(text);
+}
+
+/** claude-sonnet-4-5-20250929 -> sonnet-4-5: the part people say out loud. */
+function shortModel(id: string): string {
+  return id
+    .replace(/^.*claude-/, "")
+    .replace(/[-@]\d{8}.*$/, "")
+    .replace(/-v\d+(:\d+)?$/, "");
+}
+
+// Pad plain text before painting it: ANSI codes would count towards the width.
+function lpad(s: string, width: number): string {
+  return s.padStart(width);
+}
+
+function rpad(s: string, width: number): string {
+  return s.padEnd(width);
 }
 
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
-function fmtNum(n: number): string {
+function plural(n: number, noun: string): string {
+  return `${fmtInt(n)} ${noun}${n === 1 ? "" : "s"}`;
+}
+
+function fmtInt(n: number): string {
+  return n.toLocaleString("en-US");
+}
+
+function fmtTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(Math.round(n));
 }
 
 function fmtCost(dollars: number): string {
-  if (dollars >= 1000) return `$${(dollars / 1000).toFixed(1)}K`;
-  if (dollars >= 1) return `$${dollars.toFixed(2)}`;
-  return `$${dollars.toFixed(3)}`;
+  return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function fmtCostShort(dollars: number | null): string {
+function fmtCostPerTurn(dollars: number | null): string {
   if (dollars === null) return "—";
-  if (dollars >= 1) return `$${dollars.toFixed(2)}`;
-  if (dollars >= 0.01) return `$${dollars.toFixed(2)}`;
-  if (dollars >= 0.001) return `$${dollars.toFixed(3)}`;
-  return "$0.00";
+  if (dollars > 0 && dollars < 0.005) return "<$0.01";
+  return fmtCost(dollars);
+}
+
+/** "2026-10-06", "2026-11-11" -> "Oct 6 – Nov 11, 2026". Empty when there are no dates. */
+function fmtDateRange(first: string, last: string): string {
+  if (first === "" || last === "") return "";
+  const [y1, m1, d1] = first.split("-").map(Number);
+  const [y2, m2, d2] = last.split("-").map(Number);
+  const end = `${MONTHS[m2 - 1]} ${d2}, ${y2}`;
+  if (first === last) return end;
+  const start = `${MONTHS[m1 - 1]} ${d1}${y1 === y2 ? "" : `, ${y1}`}`;
+  return `${start} – ${end}`;
 }

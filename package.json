@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run check && npm run build",
     "check": "tsc --noEmit && vitest run && eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

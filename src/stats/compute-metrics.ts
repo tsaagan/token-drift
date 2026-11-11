@@ -56,7 +56,7 @@ export function computeMetrics(
       outputTokensCi: [output.low, output.high],
       medianThinkingTokens: thinking.length > 0 ? median(thinking) : null,
       medianToolCalls: median(groupTurns.map((t) => t.toolCalls)),
-      cacheHitRate: totalCache > 0 ? totalCacheRead / totalCache : 0,
+      cacheHitRate: totalCache > 0 ? totalCacheRead / totalCache : null,
       totalCost: turnCosts.reduce((a, b) => a + b, 0),
       medianCostPerTurn: turnCosts.length > 0 ? median(turnCosts) : null,
       unpricedTurns: groupTurns.length - turnCosts.length,
@@ -110,7 +110,10 @@ export function computeDeltas(
           ? null
           : relativeDelta(prev.medianThinkingTokens, curr.medianThinkingTokens),
       toolCallsDelta: relativeDelta(prev.medianToolCalls, curr.medianToolCalls),
-      cacheHitRateDelta: curr.cacheHitRate - prev.cacheHitRate,
+      cacheHitRateDelta:
+        prev.cacheHitRate === null || curr.cacheHitRate === null
+          ? null
+          : curr.cacheHitRate - prev.cacheHitRate,
     });
   }
 

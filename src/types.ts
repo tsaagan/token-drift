@@ -35,7 +35,8 @@ export interface VersionMetrics {
   outputTokensCi: readonly [number, number];
   medianThinkingTokens: number | null;
   medianToolCalls: number;
-  cacheHitRate: number;
+  /** Cache reads as a share of all cache tokens; null when there were none. */
+  cacheHitRate: number | null;
   /** Estimated USD over the turns that could be priced. */
   totalCost: number;
   medianCostPerTurn: number | null;
@@ -55,5 +56,5 @@ export interface Delta {
   significant: boolean;
   thinkingTokensDelta: number | null;
   toolCallsDelta: number;
-  cacheHitRateDelta: number;
+  cacheHitRateDelta: number | null;
 }

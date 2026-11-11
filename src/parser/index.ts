@@ -1,18 +1,31 @@
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Turn } from "../types.js";
 import { discoverSessions } from "./discover-sessions.js";
 import { parseSession } from "./parse-session.js";
 
-export function loadAllTurns(
-  logDir?: string
-): { turns: Turn[]; sessionCount: number; fileCount: number } {
-  const dir = logDir ?? join(homedir(), ".claude", "projects");
-  const sessionFiles = discoverSessions(dir);
+/**
+ * Where to look for session logs. CLAUDE_CONFIG_DIR wins when set, as it does
+ * for Claude Code itself; otherwise both default locations are searched.
+ */
+export function logDirs(
+  env: Record<string, string | undefined>,
+  home: string
+): string[] {
+  const configured = env.CLAUDE_CONFIG_DIR?.trim();
+  if (configured) return [join(configured, "projects")];
+  return [
+    join(home, ".config", "claude", "projects"),
+    join(home, ".claude", "projects"),
+  ];
+}
 
-  const allTurns: Turn[] = [];
-  const sessionIds = new Set<string>();
+export function loadAllTurns(dirs: string[]): {
+  turns: Turn[];
+  fileCount: number;
+} {
+  const sessionFiles = dirs.flatMap(discoverSessions);
+  const turns: Turn[] = [];
 
   for (const sf of sessionFiles) {
     let raw: string;
@@ -23,17 +36,8 @@ export function loadAllTurns(
     }
 
     const lines = raw.split("\n").filter((l) => l.trim().length > 0);
-    const turns = parseSession(sf.sessionId, lines);
-
-    for (const turn of turns) {
-      allTurns.push(turn);
-      sessionIds.add(turn.sessionId);
-    }
+    for (const turn of parseSession(sf.sessionId, lines)) turns.push(turn);
   }
 
-  return {
-    turns: allTurns,
-    sessionCount: sessionIds.size,
-    fileCount: sessionFiles.length,
-  };
+  return { turns, fileCount: sessionFiles.length };
 }

@@ -15,7 +15,7 @@ jobs:
           status: |
             whodrifted ${{ github.event.release.tag_name }} is out 🦖
 
-            See what each Claude Code update costs you — right from your terminal.
+            See what each Claude Code update costs you, right from your terminal.
 
             npx whodrifted
 
