@@ -1,14 +1,14 @@
-# token-drift
+# driftcost
 
 See what each Claude Code update costs you, from the logs already on your machine.
 
 ```
-npx token-drift
+npx driftcost
 ```
 
-![token-drift output: an estimated cost, the changes it found between Claude Code versions with a cause for each, and a table with one row per version](docs/demo.svg)
+![driftcost output: an estimated cost, the changes it found between Claude Code versions with a cause for each, and a table with one row per version](docs/demo.svg)
 
-Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. token-drift reads the session logs Claude Code already keeps and lines the numbers up by version, so you can see when something moved and what most likely moved it. There is nothing to configure. It reads local files only and makes no network requests.
+Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. driftcost reads the session logs Claude Code already keeps and lines the numbers up by version, so you can see when something moved and what most likely moved it. There is nothing to configure. It reads local files only and makes no network requests.
 
 The picture is a run on sample logs. In it, 2.1.314 started writing more than twice as much per turn, and the jump is still there when only turns on the same model and effort level are compared, so it is put down to the release. The drop at 2.1.319 lines up with a switch from Opus 5.5 to Fable 5.2, so the model is named instead.
 
@@ -36,7 +36,7 @@ After that it either gets a line of its own saying what changed and why, or one 
 `--compact` prints at most three lines, for pasting into a chat:
 
 ```
-token-drift · $230.45 estimated · 993 turns · Oct 6 – Nov 5, 2026
+driftcost · $230.45 estimated · 993 turns · Oct 6 – Nov 5, 2026
 ▼ 2.1.314 → 2.1.319: 45% fewer output tokens (model: opus-5-5 → fable-5-2)
 ▲ 2.1.311 → 2.1.314: 120% more output tokens (release: same model and effort)
 ```
@@ -58,7 +58,7 @@ Rows marked `low n` have fewer than 20 turns. They are listed but skipped when c
 
 ## What caused a change
 
-When output tokens shift significantly between two versions, token-drift repeats the comparison using only turns that ran on the same model at the same effort level.
+When output tokens shift significantly between two versions, driftcost repeats the comparison using only turns that ran on the same model at the same effort level.
 
 - `release`: the shift is still there like for like, so the model and effort can't explain it.
 - `model`: there was no like-for-like shift, and the most-used model differs between the two versions.
@@ -73,7 +73,7 @@ The total is an estimate, not a bill. On a Claude subscription you aren't charge
 
 ## How significance is decided
 
-For each version, token-drift takes the median output tokens per turn and a 95% confidence interval for that median from order statistics: the values at ranks n/2 ± 0.98·√n of the sorted turns. A change is flagged only when the intervals of the two versions don't overlap. That is stricter than a plain test at the 5% level, which suits a tool whose worst failure is crying wolf.
+For each version, driftcost takes the median output tokens per turn and a 95% confidence interval for that median from order statistics: the values at ranks n/2 ± 0.98·√n of the sorted turns. A change is flagged only when the intervals of the two versions don't overlap. That is stricter than a plain test at the 5% level, which suits a tool whose worst failure is crying wolf.
 
 ## JSON
 

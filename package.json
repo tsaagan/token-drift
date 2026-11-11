@@ -1,10 +1,10 @@
 {
-  "name": "token-drift",
+  "name": "driftcost",
   "version": "0.1.0",
   "description": "See what each Claude Code update costs you",
   "type": "module",
   "bin": {
-    "token-drift": "./dist/cli/index.js"
+    "driftcost": "./dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "dev": "tsx src/cli/index.ts"
   },
-  "keywords": ["token-drift", "claude", "claude-code", "drift", "observability", "cli", "cost", "tokens", "anthropic", "ai-tools", "model-drift"],
+  "keywords": ["driftcost", "token-drift", "claude", "claude-code", "drift", "observability", "cli", "cost", "tokens", "anthropic", "ai-tools", "model-drift"],
   "author": "tsaagan",
   "license": "MIT",
   "repository": {

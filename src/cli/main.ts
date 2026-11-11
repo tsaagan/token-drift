@@ -24,9 +24,9 @@ interface Options {
 }
 
 const USAGE = `
-  token-drift: what changed in each Claude Code release
+  driftcost: what changed in each Claude Code release
 
-  Usage: npx token-drift [options]
+  Usage: npx driftcost [options]
 
   Options:
     --by-version, -v   Group by Claude Code version (default)
@@ -50,7 +50,7 @@ export function main(
   if ("unknown" in parsed) {
     return {
       stdout: "",
-      stderr: `Unknown option: ${parsed.unknown}\nRun token-drift --help to see the options.`,
+      stderr: `Unknown option: ${parsed.unknown}\nRun driftcost --help to see the options.`,
       exitCode: 1,
     };
   }
@@ -126,7 +126,7 @@ function renderNoLogs(dirs: string[], fileCount: number, home: string): string {
     "  Looked in:",
     ...shown.map((dir) => `    ${dir}`),
     "",
-    "  token-drift reads the logs Claude Code writes as you use it, so there",
+    "  driftcost reads the logs Claude Code writes as you use it, so there",
     "  is nothing to show until you have run a session. It does not read logs",
     "  from Cursor, Codex or other tools. If your Claude Code logs are somewhere",
     "  else, set CLAUDE_CONFIG_DIR to that folder.",

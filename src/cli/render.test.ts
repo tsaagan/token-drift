@@ -452,7 +452,7 @@ describe("renderSummary", () => {
   });
 
   it("shows the command that prints a summary to paste elsewhere", () => {
-    expect(renderSummary(makeReport(), p)).toContain("Share it: npx token-drift --compact");
+    expect(renderSummary(makeReport(), p)).toContain("Share it: npx driftcost --compact");
   });
 
   it("explains a dash under Think only when a row has one", () => {
@@ -466,7 +466,7 @@ describe("renderSummary", () => {
   it("gives a reason to come back, and where the project lives", () => {
     const out = renderSummary(makeReport(), p);
     expect(out).toContain("after your next Claude Code update");
-    expect(out).toContain("github.com/tsaagan/token-drift");
+    expect(out).toContain("github.com/tsaagan/driftcost");
   });
 
   it("prints the same thing every time for the same report", () => {
@@ -498,14 +498,14 @@ describe("renderCompact", () => {
 
   it("leads with cost, turns and dates on one line", () => {
     expect(lines(makeReport())[0]).toBe(
-      "token-drift · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026"
+      "driftcost · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026"
     );
   });
 
   it("adds one line saying nothing changed", () => {
     const report = makeReport({ changes: [change({ significant: false, attribution: null })] });
     expect(lines(report)).toEqual([
-      "token-drift · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026",
+      "driftcost · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026",
       "✓ No significant change in output tokens across 2 versions",
     ]);
   });
@@ -525,7 +525,7 @@ describe("renderCompact", () => {
     });
 
     expect(lines(report)).toEqual([
-      "token-drift · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026",
+      "driftcost · $194.50 estimated · 1,200 turns · Sep 1 – Nov 10, 2026",
       "▼ 2.1.303 → 2.1.304: 50% fewer output tokens (model: opus-5-5 → fable-5-2)",
       "+ 3 earlier changes",
     ]);

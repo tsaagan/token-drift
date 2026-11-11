@@ -13,11 +13,11 @@ jobs:
         uses: ethomson/send-tweet-action@v2
         with:
           status: |
-            token-drift ${{ github.event.release.tag_name }} is out 🦖
+            driftcost ${{ github.event.release.tag_name }} is out 🦖
 
             See what each Claude Code update costs you, right from your terminal.
 
-            npx token-drift
+            npx driftcost
 
             https://github.com/tsaagan/token-drift/releases/tag/${{ github.event.release.tag_name }}
           consumer-key: ${{ secrets.TWITTER_CONSUMER_KEY }}

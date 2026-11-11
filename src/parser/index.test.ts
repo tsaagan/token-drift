@@ -23,7 +23,7 @@ describe("logDirs", () => {
 describe("loadAllTurns", () => {
   let root: string;
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "token-drift-"));
+    root = mkdtempSync(join(tmpdir(), "driftcost-"));
   });
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });

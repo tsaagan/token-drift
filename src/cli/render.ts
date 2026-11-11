@@ -14,7 +14,7 @@ export function renderDiagnosis(report: Report, p: Palette): string {
   const { totals } = report;
   const lines = [
     "",
-    p.bold("  token-drift") + p.dim(" · see what each Claude Code update costs you"),
+    p.bold("  driftcost") + p.dim(" · see what each Claude Code update costs you"),
     p.dim("  " + "─".repeat(55)),
     "",
     hasPricedTurns(report)
@@ -111,8 +111,8 @@ export function renderSummary(report: Report, p: Palette): string {
     ...notes.map((note) => p.dim(`  ${note}`)),
     "",
     p.dim("  Run again after your next Claude Code update to see what it changed."),
-    p.dim("  Share it: npx token-drift --compact"),
-    p.dim("  ★ github.com/tsaagan/token-drift"),
+    p.dim("  Share it: npx driftcost --compact"),
+    p.dim("  ★ github.com/tsaagan/driftcost"),
     "",
   ].join("\n");
 }
@@ -133,7 +133,7 @@ export function renderJson(report: Report): string {
 export function renderCompact(report: Report, p: Palette): string {
   const { totals } = report;
   const head = [
-    p.bold("token-drift"),
+    p.bold("driftcost"),
     hasPricedTurns(report)
       ? `${p.bold(fmtCost(totals.estimatedCostUsd))} estimated`
       : "cost not estimated",
