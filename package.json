@@ -1,10 +1,10 @@
 {
-  "name": "whodrifted",
+  "name": "token-drift",
   "version": "0.1.0",
-  "description": "What changed in each Claude Code release, measured from your own logs",
+  "description": "See what each Claude Code update costs you",
   "type": "module",
   "bin": {
-    "whodrifted": "./dist/cli/index.js"
+    "token-drift": "./dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -15,16 +15,16 @@
     "lint": "eslint .",
     "dev": "tsx src/cli/index.ts"
   },
-  "keywords": ["claude", "claude-code", "drift", "observability", "cli", "cost", "tokens", "anthropic", "ai-tools"],
+  "keywords": ["token-drift", "claude", "claude-code", "drift", "observability", "cli", "cost", "tokens", "anthropic", "ai-tools", "model-drift"],
   "author": "tsaagan",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tsaagan/whodrifted.git"
+    "url": "git+https://github.com/tsaagan/token-drift.git"
   },
-  "homepage": "https://github.com/tsaagan/whodrifted#readme",
+  "homepage": "https://github.com/tsaagan/token-drift#readme",
   "bugs": {
-    "url": "https://github.com/tsaagan/whodrifted/issues"
+    "url": "https://github.com/tsaagan/token-drift/issues"
   },
   "engines": {
     "node": ">=18"

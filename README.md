@@ -1,15 +1,15 @@
-# whodrifted
+# token-drift
 
-Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. whodrifted reads the session logs Claude Code already keeps on your machine and lines the numbers up by version, so you can see when something moved and what most likely moved it.
+Claude Code ships updates often, and now and then one of them changes how much it writes, thinks or costs. token-drift reads the session logs Claude Code already keeps on your machine and lines the numbers up by version, so you can see when something moved and what most likely moved it.
 
 ```
-npx whodrifted
+npx token-drift
 ```
 
 There is nothing to configure. It reads local files only and makes no network requests.
 
 ```
-  whodrifted · what changed in each Claude Code release
+  token-drift · see what each Claude Code update costs you
   ───────────────────────────────────────────────────────
 
   $230.45 estimated at API list prices
@@ -34,7 +34,7 @@ There is nothing to configure. It reads local files only and makes no network re
   On a subscription, it is what the same usage would cost through the API.
 
   Run again after your next Claude Code update to see what it changed.
-  ★ github.com/tsaagan/whodrifted
+  ★ github.com/tsaagan/token-drift
 ```
 
 That run is from sample logs. In it, 2.1.314 started writing more than twice as much per turn, and the jump is still there when only turns on the same model and effort level are compared, so it is put down to the release. The drop at 2.1.319 lines up with a switch from Opus 5.5 to Fable 5.2, so the model is named instead.
@@ -53,7 +53,7 @@ That run is from sample logs. In it, 2.1.314 started writing more than twice as 
 `--compact` prints at most three lines, for pasting into a chat:
 
 ```
-whodrifted · $230.45 estimated · 993 turns · Oct 6 – Nov 5, 2026
+token-drift · $230.45 estimated · 993 turns · Oct 6 – Nov 5, 2026
 ▼ 2.1.314 → 2.1.319: 45% fewer output tokens (model: opus-5-5 → fable-5-2)
 ▲ 2.1.311 → 2.1.314: 120% more output tokens (release: same model and effort)
 ```
@@ -75,7 +75,7 @@ Rows marked `low n` have fewer than 20 turns. They are listed but skipped when c
 
 ## What caused a change
 
-When output tokens shift significantly between two versions, whodrifted repeats the comparison using only turns that ran on the same model at the same effort level.
+When output tokens shift significantly between two versions, token-drift repeats the comparison using only turns that ran on the same model at the same effort level.
 
 - `release`: the shift is still there like for like, so the model and effort can't explain it.
 - `model`: there was no like-for-like shift, and the most-used model differs between the two versions.
@@ -90,7 +90,7 @@ The total is an estimate, not a bill. On a Claude subscription you aren't charge
 
 ## How significance is decided
 
-For each version, whodrifted takes the median output tokens per turn and a 95% confidence interval for that median from order statistics: the values at ranks n/2 ± 0.98·√n of the sorted turns. A change is flagged only when the intervals of the two versions don't overlap. That is stricter than a plain test at the 5% level, which suits a tool whose worst failure is crying wolf.
+For each version, token-drift takes the median output tokens per turn and a 95% confidence interval for that median from order statistics: the values at ranks n/2 ± 0.98·√n of the sorted turns. A change is flagged only when the intervals of the two versions don't overlap. That is stricter than a plain test at the 5% level, which suits a tool whose worst failure is crying wolf.
 
 ## JSON
 
@@ -162,8 +162,8 @@ For each version, whodrifted takes the median output tokens per turn and a 95% c
 ## Development
 
 ```
-git clone https://github.com/tsaagan/whodrifted.git
-cd whodrifted
+git clone https://github.com/tsaagan/token-drift.git
+cd token-drift
 npm install
 npm run check    # type-check, tests, lint
 ```

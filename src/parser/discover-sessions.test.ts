@@ -42,7 +42,7 @@ describe("discoverSessions", () => {
   });
 
   it("returns empty array for non-existent directory", () => {
-    const sessions = discoverSessions("/tmp/does-not-exist-whodrifted");
+    const sessions = discoverSessions("/tmp/does-not-exist-token-drift");
     expect(sessions).toEqual([]);
   });
 

@@ -6,7 +6,7 @@ import { main } from "./main.js";
 
 let home: string;
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "whodrifted-home-"));
+  home = mkdtempSync(join(tmpdir(), "token-drift-home-"));
 });
 afterEach(() => {
   rmSync(home, { recursive: true, force: true });
@@ -51,7 +51,7 @@ describe("main", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("Unknown option: --wat");
-    expect(result.stderr).toContain("whodrifted --help");
+    expect(result.stderr).toContain("token-drift --help");
   });
 
   it("rejects a stray word instead of ignoring it", () => {

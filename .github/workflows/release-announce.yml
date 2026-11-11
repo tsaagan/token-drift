@@ -13,13 +13,13 @@ jobs:
         uses: ethomson/send-tweet-action@v2
         with:
           status: |
-            whodrifted ${{ github.event.release.tag_name }} is out 🦖
+            token-drift ${{ github.event.release.tag_name }} is out 🦖
 
             See what each Claude Code update costs you, right from your terminal.
 
-            npx whodrifted
+            npx token-drift
 
-            https://github.com/tsaagan/whodrifted/releases/tag/${{ github.event.release.tag_name }}
+            https://github.com/tsaagan/token-drift/releases/tag/${{ github.event.release.tag_name }}
           consumer-key: ${{ secrets.TWITTER_CONSUMER_KEY }}
           consumer-secret: ${{ secrets.TWITTER_CONSUMER_SECRET }}
           access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
