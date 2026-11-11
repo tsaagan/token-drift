@@ -105,6 +105,8 @@ export function renderSummary(report: Report, p: Palette): string {
     );
   }
   lines.push("");
+  lines.push(p.dim("  ★ github.com/tsaagan/whodrifted"));
+  lines.push("");
   return lines.join("\n");
 }
 

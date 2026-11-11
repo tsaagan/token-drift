@@ -14,8 +14,17 @@
     "lint": "eslint .",
     "dev": "tsx src/cli/index.ts"
   },
-  "keywords": ["claude", "claude-code", "drift", "observability", "cli"],
+  "keywords": ["claude", "claude-code", "drift", "observability", "cli", "cost", "tokens", "anthropic", "ai-tools"],
+  "author": "tsaagan",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsaagan/whodrifted.git"
+  },
+  "homepage": "https://github.com/tsaagan/whodrifted#readme",
+  "bugs": {
+    "url": "https://github.com/tsaagan/whodrifted/issues"
+  },
   "engines": {
     "node": ">=18"
   },
